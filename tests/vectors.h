@@ -6,6 +6,11 @@
 #ifndef WB_SIMULATIONS_VECTORS_H
 #define WB_SIMULATIONS_VECTORS_H
 
+#include <string_view>
+constexpr bool strings_equal(char const * a, char const * b) {
+    return std::string_view(a)==b;
+}
+
 namespace wb_vec {
 
     /// @brief Basic floating point type used for all physical values.
@@ -65,8 +70,8 @@ namespace wb_vec {
     struct Across:      public axis<Across>              { WB_VEC_CLASS_SPECIFIC const char* name(){ return "Y"; }
                                                                                                 } static is_across;
     /// @brief Altitude -> https://en.wikipedia.org/wiki/Length
-    struct Upwards:     public axis<Upwards>             { WB_VEC_CLASS_SPECIFIC const char* name(){ return "Z"; }
-                                                                                                } static is_upwards;
+    struct Upward:     public axis<Upward>             { WB_VEC_CLASS_SPECIFIC const char* name(){ return "Z"; }
+                                                                                                } static is_upward;
     // TEMPLATE FOR ANY PHYSICAL UNITS:
     //*////////////////////////////////
 
@@ -102,28 +107,30 @@ namespace wb_vec {
     struct Quantity {
         WB_VEC_CLASS_SPECIFIC  char* abbreviation() { return UNIT::abbreviation(); }
         float_base value;
+        constexpr Quantity(const Quantity&) = default;
         constexpr Quantity(const float_base& iniVal):value{iniVal}{}
         constexpr Quantity(const long double& iniVal):value{(float_base)iniVal}{ /** @todo RANGE CHECK ASSERT? */}
         constexpr Quantity(const unsigned long long& iniVal):value{(float_base)iniVal}{/** @todo RANGE CHECK ASSERT? */}
+        constexpr auto operator - () { return Quantity(-this->value);}
     };
 
-#define WB_VEC_QUANTITY_BODY using Quantity::Quantity;
+#define WB_VEC_QUANTITY_BODY(THISCLASS) using Quantity::Quantity;constexpr auto operator - () { return THISCLASS(-this->value);}
 
     // PHYSICAL QUANTITIES MEASURED IN SI UNITS:
     //*/////////////////////////////////////////
 
     /// @brief It is a quantity of length measured in SI units
-    struct DistSI:     public Quantity<DistSI,SI_length_unit>       {WB_VEC_QUANTITY_BODY};
+    struct DistSI:     public Quantity<DistSI,SI_length_unit>       {WB_VEC_QUANTITY_BODY(DistSI)};
     /// @brief It is a quantity of time measured in SI units
-    struct TimeSI:     public Quantity<TimeSI,SI_time_unit>         {WB_VEC_QUANTITY_BODY};
+    struct TimeSI:     public Quantity<TimeSI,SI_time_unit>         {WB_VEC_QUANTITY_BODY(TimeSI)};
     /// @brief It is a quantity of mass measured in SI units
-    struct MassSI:     public Quantity<MassSI,SI_mass_unit>         {WB_VEC_QUANTITY_BODY};
+    struct MassSI:     public Quantity<MassSI,SI_mass_unit>         {WB_VEC_QUANTITY_BODY(MassSI)};
     /// @brief It is a quantity of temperature measured in SI units
-    struct TempSI:     public Quantity<TempSI,SI_temperature_unit>  {WB_VEC_QUANTITY_BODY};
+    struct TempSI:     public Quantity<TempSI,SI_temperature_unit>  {WB_VEC_QUANTITY_BODY(TempSI)};
     /// @brief It is a quantity of speed measured in SI units
-    struct VelocitySI: public Quantity<VelocitySI,SI_velocity_unit> {WB_VEC_QUANTITY_BODY};
+    struct VelocitySI: public Quantity<VelocitySI,SI_velocity_unit> {WB_VEC_QUANTITY_BODY(VelocitySI)};
     /// @brief It is a quantity of acceleration measured in SI units
-    struct AccelerationSI: public Quantity<AccelerationSI,SI_acceleration_unit> {WB_VEC_QUANTITY_BODY};
+    struct AccelerationSI: public Quantity<AccelerationSI,SI_acceleration_unit> {WB_VEC_QUANTITY_BODY(AccelerationSI)};
 
     WB_VEC_CLASS_SPECIFIC auto operator "" _m    (long double val) { return DistSI{val}; }
     WB_VEC_CLASS_SPECIFIC auto operator "" _s    (long double val) { return TimeSI{val}; }
@@ -150,16 +157,18 @@ namespace wb_vec {
         WB_VEC_CLASS_SPECIFIC  char* unit_abr() { return QUANTITY::abbreviation(); }
         WB_VEC_CLASS_SPECIFIC  char* axis_abr() { return AXIS::name(); }
         QUANTITY val;
+        constexpr Scalar(const Scalar&) = default;
         constexpr Scalar(const QUANTITY& initVal):val(initVal){}
     };
 
-    template<class AXIS,class QUANTITY>
-    inline auto xD(const QUANTITY& initVal,const AXIS& /*axis*/) {
-        static_assert(AXIS::name() != nullptr);
-        return Scalar<AXIS,QUANTITY>(initVal);
-    }
+    //template<class AXIS,class QUANTITY>
+    //std::enable_if_t<std::is_base_of_v<axis<AXIS>,AXIS>,bool>
+    //inline auto xD(const QUANTITY& initVal,const AXIS& /*axis*/) {
+    //    static_assert(AXIS::name() != nullptr);
+    //  return Scalar<AXIS,QUANTITY>{initVal};
+    //}
 
-#define WB_VEC_SCALAR_BODY(THISCLASS,AXIS,UNIT)          using Scalar::Scalar; \
+#define WB_VEC_SCALAR_BODY(THISCLASS,AXIS,UNIT)     using Scalar::Scalar; \
                                                     constexpr THISCLASS(const Scalar<AXIS,UNIT>& sc):Scalar{sc}{}
 
     // PHYSICAL SCALARS FOR FLAT COORDINATE SYSTEM MEASURED IN SI UNITS:
@@ -167,12 +176,15 @@ namespace wb_vec {
 
     struct TimeSpan:public Scalar<Time,TimeSI> {WB_VEC_SCALAR_BODY(TimeSpan,Time,TimeSI)};
     constexpr inline TimeSpan xD(const TimeSI& t) { return TimeSpan{t}; }
+    constexpr inline TimeSpan xD(const TimeSI& t,const Time&) { return TimeSpan{t}; }
 
     struct MassQuan:public Scalar<Mass,MassSI> {WB_VEC_SCALAR_BODY(MassQuan,Mass,MassSI)};
     constexpr inline MassQuan xD(const MassSI& m) { return MassQuan{m}; }
+    constexpr inline MassQuan xD(const MassSI& m,const Mass&) { return MassQuan{m}; }
 
     struct TempQuan:public Scalar<Temperature,TempSI> {WB_VEC_SCALAR_BODY(TempQuan,Temperature,TempSI)};
     constexpr inline TempQuan xD(const TempSI& tt) { return TempQuan{tt}; }
+    constexpr inline TempQuan xD(const TempSI& tt,const Temperature&) { return TempQuan{tt}; }
 
     struct Longitude:public Scalar<Along,DistSI> {WB_VEC_SCALAR_BODY(Longitude,Along,DistSI)};
     constexpr inline Longitude xD(const DistSI& d,const Along&) { return Longitude{d}; }
@@ -180,8 +192,8 @@ namespace wb_vec {
     struct Latitude:public Scalar<Across,DistSI> {WB_VEC_SCALAR_BODY(Latitude,Across,DistSI)};
     constexpr inline Latitude xD(const DistSI& d,const Across&) { return Latitude{d}; }
 
-    struct Altitude:public Scalar<Upwards,DistSI> {WB_VEC_SCALAR_BODY(Altitude,Upwards,DistSI)};
-    constexpr inline Altitude xD(const DistSI& d,const Upwards&) { return Altitude{d}; }
+    struct Altitude:public Scalar<Upward,DistSI> {WB_VEC_SCALAR_BODY(Altitude,Upward,DistSI)};
+    constexpr inline Altitude xD(const DistSI& d,const Upward&) { return Altitude{d}; }
 
     struct VelAlong:public Scalar<Along,VelocitySI> {WB_VEC_SCALAR_BODY(VelAlong,Along,VelocitySI)};
     constexpr inline VelAlong xD(const VelocitySI& v,const Along&) { return VelAlong{v}; }
@@ -189,8 +201,8 @@ namespace wb_vec {
     struct VelAcross:public Scalar<Across,VelocitySI> {WB_VEC_SCALAR_BODY(VelAcross,Across,VelocitySI)};
     constexpr inline VelAcross xD(const VelocitySI& v,const Across&) { return VelAcross{v}; }
 
-    struct VelUpwards:public Scalar<Upwards,VelocitySI> {WB_VEC_SCALAR_BODY(VelUpwards,Upwards,VelocitySI)};
-    constexpr inline VelUpwards xD(const VelocitySI& v,const Upwards&) { return VelUpwards{v}; }
+    struct VelUpward:public Scalar<Upward,VelocitySI> {WB_VEC_SCALAR_BODY(VelUpward,Upward,VelocitySI)};
+    constexpr inline VelUpward xD(const VelocitySI& v,const Upward&) { return VelUpward{v}; }
 
     struct AccAlong:public Scalar<Along,AccelerationSI> {WB_VEC_SCALAR_BODY(AccAlong,Along,AccelerationSI)};
     constexpr inline AccAlong xD(const AccelerationSI& a,const Along&) { return AccAlong{a}; }
@@ -198,9 +210,101 @@ namespace wb_vec {
     struct AccAcross:public Scalar<Across,AccelerationSI> {WB_VEC_SCALAR_BODY(AccAcross,Across,AccelerationSI)};
     constexpr inline AccAcross xD(const AccelerationSI& a,const Across&) { return AccAcross{a}; }
 
-    struct AccUpwards:public Scalar<Upwards,AccelerationSI> {WB_VEC_SCALAR_BODY(AccUpwards,Upwards,AccelerationSI)};
-    constexpr inline AccUpwards xD(const AccelerationSI& a,const Upwards&) { return AccUpwards{a}; }
+    struct AccUpward:public Scalar<Upward,AccelerationSI> {WB_VEC_SCALAR_BODY(AccUpward,Upward,AccelerationSI)};
+    constexpr inline AccUpward xD(const AccelerationSI& a,const Upward&) { return AccUpward{a}; }
 
+    ///https://www.youtube.com/watch?v=-PXAOZwvv04 - taki to kraj...
+
+    // PHYSICAL VECTORS 2D TEMPLATE:
+    //*/////////////////////////////
+
+    template<class AXIS1,class AXIS2,class QUANTITY>
+    struct Vec2D {
+        WB_VEC_CLASS_SPECIFIC  char* unit_abr() { return QUANTITY::abbreviation(); }
+        WB_VEC_CLASS_SPECIFIC  char* axisX_abr() { return AXIS1::name(); }
+        WB_VEC_CLASS_SPECIFIC  char* axisY_abr() { return AXIS2::name(); }
+        Scalar<AXIS1,QUANTITY> x;
+        Scalar<AXIS2,QUANTITY> y;
+        constexpr Vec2D(const Vec2D&) = default;
+        constexpr Vec2D(const Scalar<AXIS1,QUANTITY>& iniX,const Scalar<AXIS2,QUANTITY>& iniY):x(iniX),y(iniY){}
+    };
+
+    template<class AXIS1,class AXIS2,class QUANTITY>
+    inline auto xD(const Scalar<AXIS1,QUANTITY>& iniX,const Scalar<AXIS2,QUANTITY>& iniY){
+        static_assert( AXIS1::name() != nullptr );
+        static_assert( AXIS2::name() != nullptr );
+        static_assert( !strings_equal(AXIS1::name(),AXIS2::name()) ); //Axes need to be different!
+
+        return Vec2D<AXIS1,AXIS2,QUANTITY>(iniX,iniY);
+    }
+
+#define WB_VEC_VEC2D_BODY(THISCLASS,AXIS1,AXIS2,UNIT)     using Vec2D::Vec2D; \
+                                                          constexpr THISCLASS(const Vec2D<AXIS1,AXIS2,UNIT>& sc):Vec2D{sc}{}
+
+    // PHYSICAL VECTORS 2D FOR FLAT COORDINATE SYSTEM MEASURED IN SI UNITS:
+    //*////////////////////////////////////////////////////////////////////
+
+    struct PlanePosition:public Vec2D<Along,Across,DistSI> {WB_VEC_VEC2D_BODY(PlanePosition,Along,Across,DistSI)};
+    constexpr inline PlanePosition xD(const Scalar<Along,DistSI> iniX,const Scalar<Across,DistSI> iniY) { return {iniX,iniY}; }
+
+    struct PlaneVelocity:public Vec2D<Along,Across,VelocitySI> {WB_VEC_VEC2D_BODY(PlaneVelocity,Along,Across,VelocitySI)};
+    constexpr inline PlaneVelocity xD(const Scalar<Along,VelocitySI> iniX,const Scalar<Across,VelocitySI> iniY) { return {iniX,iniY}; }
+
+    struct PlaneAcceleration:public Vec2D<Along,Across,AccelerationSI> {WB_VEC_VEC2D_BODY(PlaneAcceleration,Along,Across,AccelerationSI)};
+    constexpr inline PlaneAcceleration xD(const Scalar<Along,AccelerationSI> iniX,const Scalar<Across,AccelerationSI> iniY) { return {iniX,iniY}; }
+
+    // PHYSICAL VECTORS 3D TEMPLATE:
+    //*/////////////////////////////
+
+    template<class AXIS1,class AXIS2,class AXIS3,class QUANTITY>
+    struct Vec3D {
+        WB_VEC_CLASS_SPECIFIC  char* unit_abr() { return QUANTITY::abbreviation(); }
+        WB_VEC_CLASS_SPECIFIC  char* axisX_abr() { return AXIS1::name(); }
+        WB_VEC_CLASS_SPECIFIC  char* axisY_abr() { return AXIS2::name(); }
+        WB_VEC_CLASS_SPECIFIC  char* axisZ_abr() { return AXIS3::name(); }
+        Scalar<AXIS1,QUANTITY> x;
+        Scalar<AXIS2,QUANTITY> y;
+        Scalar<AXIS3,QUANTITY> z;
+        constexpr Vec3D(const Vec3D&) = default;
+        constexpr Vec3D(const Scalar<AXIS1,QUANTITY>& iniX,
+                        const Scalar<AXIS2,QUANTITY>& iniY,
+                        const Scalar<AXIS3,QUANTITY>& iniZ):x(iniX),y(iniY),z(iniZ){}
+    };
+
+    template<class AXIS1,class AXIS2,class AXIS3,class QUANTITY>
+    inline auto xD(const Scalar<AXIS1,QUANTITY>& iniX,
+                   const Scalar<AXIS2,QUANTITY>& iniY,
+                   const Scalar<AXIS3,QUANTITY>& iniZ){
+        static_assert( AXIS1::name() != nullptr );
+        static_assert( AXIS2::name() != nullptr );
+        static_assert( AXIS3::name() != nullptr );
+        static_assert( !strings_equal(AXIS1::name(),AXIS2::name()) ); //Axes need to be different!
+        static_assert( !strings_equal(AXIS2::name(),AXIS3::name()) ); //Axes need to be different!
+        static_assert( !strings_equal(AXIS3::name(),AXIS1::name()) ); //Axes need to be different!
+
+        return Vec3D<AXIS1,AXIS2,AXIS3,QUANTITY>(iniX,iniY,iniZ);
+    }
+
+#define WB_VEC_VEC3D_BODY(THISCLASS,AXIS1,AXIS2,AXIS3,UNIT)     using Vec3D::Vec3D; \
+                                                          constexpr THISCLASS(const Vec3D<AXIS1,AXIS2,AXIS3,UNIT>& sc):Vec3D{sc}{}
+
+    // PHYSICAL VECTORS 2D FOR FLAT COORDINATE SYSTEM MEASURED IN SI UNITS:
+    //*////////////////////////////////////////////////////////////////////
+
+    struct VolumePosition: public Vec3D<Along,Across,Upward,DistSI> {WB_VEC_VEC3D_BODY(VolumePosition, Along, Across, Upward, DistSI)};
+    constexpr inline VolumePosition xD(const Scalar<Along,DistSI> iniX,
+                                       const Scalar<Across,DistSI> iniY,
+                                       const Scalar<Upward,DistSI> iniZ) { return {iniX,iniY,iniZ}; }
+
+    struct VolumeVelocity: public Vec3D<Along,Across,Upward,VelocitySI> {WB_VEC_VEC3D_BODY(VolumeVelocity, Along, Across, Upward, VelocitySI)};
+    constexpr inline VolumeVelocity xD(const Scalar<Along,VelocitySI> iniX,
+                                       const Scalar<Across,VelocitySI> iniY,
+                                       const Scalar<Upward,VelocitySI> iniZ) { return {iniX,iniY,iniZ}; }
+
+    struct VolumeAcceleration: public Vec3D<Along,Across,Upward,AccelerationSI> {WB_VEC_VEC3D_BODY(VolumeAcceleration, Along, Across, Upward, AccelerationSI)};
+    constexpr inline VolumeAcceleration xD(const Scalar<Along,AccelerationSI> iniX,
+                                           const Scalar<Across,AccelerationSI> iniY,
+                                           const Scalar<Upward,AccelerationSI> iniZ) { return {iniX,iniY,iniZ}; }
 }
 
 

@@ -6,7 +6,7 @@ using namespace wb_vec;
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-    auto time1=1_s;
+    auto time1=-1_s;
     auto timePeriod1=TimeSpan(time1);
     auto time2=10.0_s;
     TimeSpan timePeriod2=time2;
@@ -23,7 +23,7 @@ int main() {
     MassQuan mass5q=xD(99.9_kg,on_mass);
 
     auto temp=280_K;
-    auto tempq=xD(temp);
+    auto tempQ=xD(temp);
     TempQuan tempr=xD(100_K,on_temperature);
 
     auto dist1=1_m;
@@ -40,6 +40,19 @@ int main() {
     auto acc1=1_m_s2;
     auto acc1X=xD(acc1,is_along);
 
+    PlanePosition point0{dist1X,Latitude{1_m}};
+    auto point1=xD(dist2X,Latitude{7.7_m});
+    auto test1=xD(Latitude{2_m},Altitude{3_m}); // The non-standard plane is accepted but has not predefined type.
+    //auto test2=xD(Altitude{2_m},Altitude{3_m}); //fail on static_assert( !strings_equal(AXIS1::name(),AXIS2::name()) ); //Axes need to be different!
+
+    PlaneVelocity velP0{vel2X,vel2};
+    auto velP1=xD(VelAlong{10_m_s},VelAcross{1.59_m_s});
+
+    PlaneAcceleration accP0{acc1X,AccAcross{2_m_s2}};
+    auto accP1=xD(AccAlong{2.33_m_s2},acc1);
+
+    VolumeVelocity vel3D{VelAlong{5_m_s},VelAcross{1.22_m_s},VelUpward{0.33_m_s}};
+    auto vol3D2=xD(vel1X,vel2,VelUpward{-0.55_m_s});
 
     return 0;
 }
