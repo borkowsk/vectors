@@ -17,7 +17,7 @@ int main() {
     auto tsi=TimeSI{1_s}+TimeSI{2_s};
 
     auto mass1=5.5_kg;
-    auto mass1d=xD(mass1/3);
+    auto mass1d=xD(mass1/3.);
     MassQuan mass1q= mass1;
     auto mass2=3_kg;
     auto mass2q=MassQuan{3_kg};
@@ -70,6 +70,6 @@ int main() {
     auto res11=res10-res3;
     //auto res4=velP1+Altitude{1_m}/TimeSpan{1_s};
 
-
+    std::cout << "SUCCESS!" << std::endl;
     return 0;
 }
