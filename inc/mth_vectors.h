@@ -3,7 +3,7 @@
  *
  *      Created by borkowsk on 10.12.22.
  *      Names changed from `create` into `xD` 11.12.23
- *  @date 2024-02-13 (last modification)
+ *  @date 2024-10-24 (last modification)
  */
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "google-explicit-constructor"
@@ -12,7 +12,7 @@
 
 #include <string_view>
 
-namespace wb_vec {
+namespace merry_tools::math {
 
     /// @brief Helper for comparing char* by value.
     constexpr bool strings_equal(char const * a, char const * b) {
